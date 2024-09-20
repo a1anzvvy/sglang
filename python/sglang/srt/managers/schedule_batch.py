@@ -123,6 +123,7 @@ class ImageInputs:
     image_offsets: Optional[list] = None
     pad_values: Optional[list] = None
     modalities: Optional[list] = None
+    region_coords: Optional[List[Tuple[int, int, int, int]]] = None
 
     image_embeds: Optional[List[torch.Tensor]] = None
     aspect_ratio_ids: Optional[List[torch.Tensor]] = None
@@ -145,6 +146,7 @@ class ImageInputs:
         ret.image_sizes = obj["image_sizes"]
         # Only when pixel values is not None we have modalities
         ret.modalities = obj["modalities"] or ["image"]
+        ret.region_coords = obj["region_coords"]
         return ret
 
 

@@ -10,7 +10,7 @@ from typing import List, Optional, Union
 import numpy as np
 import transformers
 
-from sglang.srt.hf_transformers_utils import get_processor
+from sglang.srt.hf_transformers_utils import get_processor, get_srgpt_processor
 from sglang.srt.mm_utils import expand2square, process_anyres_image
 from sglang.srt.server_args import ServerArgs
 from sglang.srt.utils import load_image
@@ -25,10 +25,8 @@ def init_global_processor(server_args: ServerArgs):
     """Init the global processor for multi modal models."""
     global global_processor
     transformers.logging.set_verbosity_error()
-    global_processor = get_processor(
-        server_args.tokenizer_path,
-        tokenizer_mode=server_args.tokenizer_mode,
-        trust_remote_code=server_args.trust_remote_code,
+    global_processor = get_srgpt_processor(
+        server_args.model_path,
     )
 
 

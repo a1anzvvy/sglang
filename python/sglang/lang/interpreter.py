@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Dict, List, Optional
 
 import tqdm
+import json
 
 from sglang.global_config import global_config
 from sglang.lang.ir import (
@@ -23,6 +24,7 @@ from sglang.lang.ir import (
     SglExprList,
     SglGen,
     SglImage,
+    SglRegion,
     SglRoleBegin,
     SglRoleEnd,
     SglSelect,
@@ -208,6 +210,9 @@ class StreamExecutor:
         self.images_ = []
         self.cur_images = []
 
+        # For region
+        self.region = []
+
         # For fork/join
         self.fork_start_text_pos = None
 
@@ -374,6 +379,8 @@ class StreamExecutor:
             self._execute_role_begin(other)
         elif isinstance(other, SglRoleEnd):
             self._execute_role_end(other)
+        elif isinstance(other, SglRegion):
+            self._execute_region(other)
         elif isinstance(other, SglImage):
             self._execute_image(other)
         elif isinstance(other, SglVideo):
@@ -424,6 +431,10 @@ class StreamExecutor:
         self.images_.append((path, base64_data))
         self.cur_images.append((path, base64_data))
         self.text_ += self.chat_template.image_token
+
+    def _execute_region(self, expr: SglRegion):
+        region = expr.region
+        self.region.append(region)
 
     def _execute_video(self, expr: SglVideo):
         path = expr.path
@@ -602,6 +613,14 @@ class StreamExecutor:
                         },
                     }
                 )
+            if self.region:
+                last_msg["content"].append(
+                    {
+                        "type": "region",
+                        "text": self.region[0]
+                    }
+                )
+                self.region = []
             self.messages_.append(last_msg)
             self.cur_images = []
         else:

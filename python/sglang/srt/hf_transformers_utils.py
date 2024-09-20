@@ -18,7 +18,7 @@ limitations under the License.
 import contextlib
 import os
 import warnings
-from typing import Dict, Optional, Type, Union
+from typing import Dict, Optional, Type, Union, List
 
 from huggingface_hub import snapshot_download
 from transformers import (
@@ -28,7 +28,10 @@ from transformers import (
     PretrainedConfig,
     PreTrainedTokenizer,
     PreTrainedTokenizerFast,
+    PreTrainedTokenizerBase
 )
+
+from transformers import LlavaProcessor, SiglipImageProcessor
 
 try:
     from vllm.transformers_utils.configs import ChatGLMConfig, DbrxConfig
@@ -180,4 +183,81 @@ def get_processor(
         tokenizer_revision=tokenizer_revision,
         **kwargs,
     )
+    return processor
+
+class SRGPTTokenizer(PreTrainedTokenizerBase):
+    def __init__(self, tokenizer) -> None:
+        self.tokenizer = tokenizer
+
+    @property
+    def bos_token_id(self):
+        return self.tokenizer.bos_token_id
+    
+    @property
+    def eos_token_id(self):
+        return self.tokenizer.eos_token_id
+
+    def convert_tokens_to_ids(self,
+                              tokens: List[str],
+                              **kwargs,
+                              ) -> List[int]:
+        return self.tokenizer.convert_tokens_to_ids(tokens, **kwargs)
+    
+    def convert_ids_to_tokens(self,
+                              input_ids: List[int],
+                              **kwargs,
+                              ) -> List[str]:
+        return self.tokenizer.convert_ids_to_tokens(input_ids, **kwargs)
+    
+    def batch_decode(self,
+                     input_ids,
+                     **kwargs,
+                     ) -> List[str]:
+        return self.tokenizer.batch_decode(input_ids, **kwargs)
+    
+    def decode(self,
+               input_ids: List[int],
+               **kwargs) -> str:
+        return self.tokenizer.decode(input_ids, **kwargs)
+
+    def encode(self, prompt: str, image_token_index=-200, lstrip=False) -> List[int]:
+        if "<image>" not in prompt:
+            return self.tokenizer.encode(prompt)
+        
+        prompt_chunks = [self.tokenizer.encode(chunk) for chunk in prompt.split("<image>")]
+
+        def insert_separator(X, sep):
+            return [ele for sublist in zip(X, [sep] * len(X)) for ele in sublist][:-1]
+
+        input_ids = []
+        offset = 0
+        if lstrip:
+            offset = 1
+        else:
+            if len(prompt_chunks) > 0 and len(prompt_chunks[0]) > 0 and prompt_chunks[0][0] == self.tokenizer.bos_token_id:
+                offset = 1
+                input_ids.append(prompt_chunks[0][0])
+
+        for chunk_id, x in enumerate(insert_separator(prompt_chunks, [image_token_index] * (offset + 1))):
+            if chunk_id == 0 and lstrip:
+                input_ids.extend(x)
+            else:
+                input_ids.extend(x[offset:])
+
+        return input_ids
+
+
+def get_srgpt_processor(
+    model_path: str,
+) -> LlavaProcessor:
+    image_processor = SiglipImageProcessor.from_pretrained(model_path + "/vision_tower")
+    tokenizer = AutoProcessor.from_pretrained(
+        model_path + "/llm",
+        trust_remote_code=False,
+        tokenizer_revision=None,
+    )
+
+    tokenizer_ret = SRGPTTokenizer(tokenizer)
+    processor = LlavaProcessor(image_processor=image_processor, tokenizer=tokenizer_ret)
+
     return processor

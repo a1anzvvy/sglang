@@ -30,7 +30,7 @@ from sglang.global_config import global_config
 from sglang.srt.configs.model_config import ModelConfig
 from sglang.srt.constrained.fsm_cache import FSMCache
 from sglang.srt.constrained.jump_forward import JumpForwardCache
-from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer
+from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer, get_srgpt_processor
 from sglang.srt.layers.logits_processor import LogitsProcessorOutput
 from sglang.srt.managers.io_struct import (
     AbortReq,
@@ -121,10 +121,8 @@ class Scheduler:
             self.tokenizer = self.processor = None
         else:
             if is_multimodal_model(self.model_config.hf_config.architectures):
-                self.processor = get_processor(
-                    server_args.tokenizer_path,
-                    tokenizer_mode=server_args.tokenizer_mode,
-                    trust_remote_code=server_args.trust_remote_code,
+                self.processor = get_srgpt_processor(
+                    server_args.model_path,
                 )
                 self.tokenizer = self.processor.tokenizer
             else:

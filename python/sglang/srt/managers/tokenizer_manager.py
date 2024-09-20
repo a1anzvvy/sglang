@@ -20,6 +20,7 @@ import dataclasses
 import json
 import logging
 import os
+import json
 from typing import Dict, List, Optional, Tuple, Union
 
 import fastapi
@@ -33,6 +34,7 @@ from sglang.srt.hf_transformers_utils import (
     get_context_length,
     get_processor,
     get_tokenizer,
+    get_srgpt_processor,
 )
 from sglang.srt.managers.image_processor import (
     get_dummy_image_processor,
@@ -112,11 +114,16 @@ class TokenizerManager:
             self.tokenizer = self.processor = None
         else:
             if is_multimodal_model(self.hf_config.architectures):
-                self.processor = get_processor(
-                    server_args.tokenizer_path,
-                    tokenizer_mode=server_args.tokenizer_mode,
-                    trust_remote_code=server_args.trust_remote_code,
-                )
+
+                # Load vila
+                self.processor = get_srgpt_processor(server_args.model_path)
+
+                # normal loading
+                # self.processor = get_processor(
+                #     server_args.tokenizer_path,
+                #     tokenizer_mode=server_args.tokenizer_mode,
+                #     trust_remote_code=server_args.trust_remote_code,
+                # )
                 self.tokenizer = self.processor.tokenizer
                 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -192,6 +199,18 @@ class TokenizerManager:
                     return_logprob = obj.return_logprob
                     logprob_start_len = obj.logprob_start_len
                     top_logprobs_num = obj.top_logprobs_num
+                    if obj.region is not None and len(obj.region) > 0:
+                        region_jsons = [json.loads(o) for o in obj.region]
+                        region_coords = [(
+                            region_json['x0'],
+                            region_json['x1'],
+                            region_json['y0'],
+                            region_json['y1'],
+                        ) for region_json in region_jsons]
+                    else:
+                        region_coords = []
+                    if image_inputs:
+                        image_inputs["region_coords"] = region_coords
             else:
                 rid = obj.rid[index]
                 if hasattr(obj, "conv"):
@@ -218,6 +237,18 @@ class TokenizerManager:
                     return_logprob = obj.return_logprob[index]
                     logprob_start_len = obj.logprob_start_len[index]
                     top_logprobs_num = obj.top_logprobs_num[index]
+                    if obj.region is not None and len(obj.region) > 0:
+                        region_json = json.loads(obj.region[index])
+                        region_coords = [(
+                            region_json['x0'],
+                            region_json['x1'],
+                            region_json['y0'],
+                            region_json['y1'],
+                        )]
+                    else:
+                        region_coords = []
+                    if image_inputs:
+                        image_inputs["region_coords"] = region_coords
 
             self._validate_input_length(input_ids)
 
@@ -232,6 +263,7 @@ class TokenizerManager:
                     rid = obj.rid[0]
                 if self.tokenizer is not None:
                     input_ids = self.tokenizer.encode(input_text)
+                    # input_ids = self.tokenizer_image_token(input_text)
                 else:
                     assert obj.input_ids is not None
                     input_ids = obj.input_ids
@@ -264,6 +296,18 @@ class TokenizerManager:
             return_logprob = obj.return_logprob[0]
             logprob_start_len = obj.logprob_start_len[0]
             top_logprobs_num = obj.top_logprobs_num[0]
+            if obj.region is not None and len(obj.region) > 0:
+                region_json = json.loads(obj.region[0])
+                region_coords = [(
+                    region_json['x0'],
+                    region_json['x1'],
+                    region_json['y0'],
+                    region_json['y1'],
+                )]
+            else:
+                region_coords = []
+            if image_inputs:
+                image_inputs["region_coords"] = region_coords
 
         # Send to the controller
         if self.is_generation:

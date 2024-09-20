@@ -19,7 +19,7 @@ import json
 import logging
 
 from sglang.srt.configs.model_config import ModelConfig
-from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer
+from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer, get_srgpt_processor
 from sglang.srt.managers.io_struct import UpdateWeightReqInput
 from sglang.srt.managers.schedule_batch import ModelWorkerBatch
 from sglang.srt.model_executor.forward_batch_info import ForwardBatch
@@ -63,11 +63,12 @@ class TpModelWorker:
             self.tokenizer = self.processor = None
         else:
             if is_multimodal_model(self.model_config.hf_config.architectures):
-                self.processor = get_processor(
-                    server_args.tokenizer_path,
-                    tokenizer_mode=server_args.tokenizer_mode,
-                    trust_remote_code=server_args.trust_remote_code,
-                )
+                # self.processor = get_processor(
+                #     server_args.tokenizer_path,
+                #     tokenizer_mode=server_args.tokenizer_mode,
+                #     trust_remote_code=server_args.trust_remote_code,
+                # )
+                self.processor = get_srgpt_processor(server_args.model_path)
                 self.tokenizer = self.processor.tokenizer
             else:
                 self.tokenizer = get_tokenizer(

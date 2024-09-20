@@ -21,7 +21,7 @@ processes (TokenizerManager, DetokenizerManager, Controller).
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 
 from sglang.srt.managers.schedule_batch import BaseFinishReason
 from sglang.srt.sampling.sampling_params import SamplingParams
@@ -31,6 +31,8 @@ from sglang.srt.sampling.sampling_params import SamplingParams
 class GenerateReqInput:
     # The input prompt. It can be a single prompt or a batch of prompts.
     text: Optional[Union[List[str], str]] = None
+    # The srgpt_region.
+    region: Optional[Union[List[str], str]] = None
     # The token ids for text; one can either specify text or input_ids.
     input_ids: Optional[Union[List[List[int]], List[int]]] = None
     # The image input. It can be a file name, a url, or base64 encoded string.
@@ -121,6 +123,11 @@ class GenerateReqInput:
                 self.image_data = [self.image_data] * num
             elif isinstance(self.image_data, list):
                 pass
+
+            if self.region is None:
+                self.region = [None] * num
+            elif not isinstance(self.region, list):
+                self.region = [self.region] * num
 
             if self.sampling_params is None:
                 self.sampling_params = [{}] * num
