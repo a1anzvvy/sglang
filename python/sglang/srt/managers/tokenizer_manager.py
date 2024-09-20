@@ -21,6 +21,7 @@ import dataclasses
 import logging
 import multiprocessing as mp
 import os
+import json
 from typing import Dict, List, Optional, Tuple, Union
 
 import fastapi
@@ -36,6 +37,7 @@ from sglang.srt.hf_transformers_utils import (
     get_context_length,
     get_processor,
     get_tokenizer,
+    get_srgpt_processor,
 )
 from sglang.srt.managers.io_struct import (
     AbortReq,
@@ -109,11 +111,16 @@ class TokenizerManager:
             self.tokenizer = self.processor = None
         else:
             if is_multimodal_model(self.hf_config.architectures):
-                self.processor = get_processor(
-                    server_args.tokenizer_path,
-                    tokenizer_mode=server_args.tokenizer_mode,
-                    trust_remote_code=server_args.trust_remote_code,
-                )
+
+                # Load vila
+                self.processor = get_srgpt_processor(server_args.model_path)
+
+                # normal loading
+                # self.processor = get_processor(
+                #     server_args.tokenizer_path,
+                #     tokenizer_mode=server_args.tokenizer_mode,
+                #     trust_remote_code=server_args.trust_remote_code,
+                # )
                 self.tokenizer = self.processor.tokenizer
                 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
@@ -123,6 +130,7 @@ class TokenizerManager:
                     initializer=init_global_processor,
                     mp_context=mp.get_context("fork"),
                     initargs=(server_args,),
+                    max_workers=os.environ.get("SGLANG_CPU_COUNT", os.cpu_count()),
                 )
             else:
                 self.tokenizer = get_tokenizer(
@@ -175,6 +183,7 @@ class TokenizerManager:
             if obj.input_ids is None:
                 assert self.tokenizer is not None
                 input_ids = self.tokenizer.encode(input_text)
+                # input_ids = self.tokenizer_image_token(input_text)
             else:
                 input_ids = obj.input_ids if not_use_index else obj.input_ids[index]
 
@@ -203,6 +212,16 @@ class TokenizerManager:
                     if not_use_index
                     else obj.top_logprobs_num[index]
                 )
+                if obj.region is not None and len(obj.region) > 0:
+                    region_json = json.loads(obj.region)
+                    region_coords = [(
+                        region_json['x0'],
+                        region_json['x1'],
+                        region_json['y0'],
+                        region_json['y1'],
+                    )]
+                else:
+                    region_coords = []
         else:  # A prefill request to cache the common prompt for parallel sampling
             assert self.is_generation
             if obj.text is not None:
@@ -214,6 +233,7 @@ class TokenizerManager:
                     rid = obj.rid[0]
                 if self.tokenizer is not None:
                     input_ids = self.tokenizer.encode(input_text)
+                    # input_ids = self.tokenizer_image_token(input_text)
                 else:
                     assert obj.input_ids is not None
                     input_ids = obj.input_ids
@@ -246,6 +266,16 @@ class TokenizerManager:
             return_logprob = obj.return_logprob[0]
             logprob_start_len = obj.logprob_start_len[0]
             top_logprobs_num = obj.top_logprobs_num[0]
+            if obj.region is not None and len(obj.region) > 0:
+                region_json = json.loads(obj.region)
+                region_coords = [(
+                    region_json['x0'],
+                    region_json['x1'],
+                    region_json['y0'],
+                    region_json['y1'],
+                )]
+            else:
+                region_coords = []
 
         # Send to the controller
         if self.is_generation:
@@ -256,6 +286,7 @@ class TokenizerManager:
                 input_text,
                 input_ids,
                 pixel_values,
+                region_coords,
                 image_hashes,
                 image_sizes,
                 sampling_params,
@@ -346,12 +377,23 @@ class TokenizerManager:
                     pixel_values, image_hashes, image_sizes = (
                         await self._get_pixel_values(obj.image_data[index])
                     )
+                    if obj.region is not None and len(obj.region) > 0:
+                        region_json = json.loads(obj.region[i])
+                        region_coords = [(
+                            region_json['x0'],
+                            region_json['x1'],
+                            region_json['y0'],
+                            region_json['y1'],
+                        )]
+                    else:
+                        region_coords = []
 
                     tokenized_obj = TokenizedGenerateReqInput(
                         rid,
                         input_text,
                         input_ids,
                         pixel_values,
+                        region_coords,
                         image_hashes,
                         image_sizes,
                         sampling_params,
@@ -727,11 +769,7 @@ def init_global_processor(server_args: ServerArgs):
     """Init the global processor for multi modal models."""
     global global_processor
     transformers.logging.set_verbosity_error()
-    global_processor = get_processor(
-        server_args.tokenizer_path,
-        tokenizer_mode=server_args.tokenizer_mode,
-        trust_remote_code=server_args.trust_remote_code,
-    )
+    global_processor = get_srgpt_processor(server_args.model_path)
 
 
 def _process_single_image_task(

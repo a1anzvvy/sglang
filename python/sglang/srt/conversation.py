@@ -518,3 +518,15 @@ register_conv_template(
         stop_str=["<|im_end|>", "<|action_end|>"],
     )
 )
+
+register_conv_template(
+    Conversation(
+        name="srgpt",
+        system_message="You are a helpful language and vision assistant. You are able to understand the visual content that the user provides, and assist the user with a variety of tasks using natural language.",
+        system_template="<|start_header_id|>system<|end_header_id|>\n\n{system_message}<|eot_id|>",
+        roles=("user", "assistant"),
+        sep_style=SeparatorStyle.LLAMA3,
+        sep="",
+        stop_str=["<|end_of_text|>", "<|eot_id|>"],
+    )
+)

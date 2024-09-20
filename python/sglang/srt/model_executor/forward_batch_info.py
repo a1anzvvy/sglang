@@ -79,6 +79,9 @@ class InputMetadata:
     image_sizes: List[List[List[int]]] = None
     image_offsets: List[List[int]] = None
 
+    # For srgpt, x1, y1, x2, y2
+    region_masks: List[List[tuple[int, int, int, int]]] = None
+
     # Trition attention backend
     triton_max_seq_len: int = 0
     triton_max_extend_len: int = 0
@@ -96,6 +99,7 @@ class InputMetadata:
         self.pixel_values = [r.pixel_values for r in reqs]
         self.image_sizes = [r.image_sizes for r in reqs]
         self.image_offsets = [r.image_offsets for r in reqs]
+        self.region_coords = [r.region_coords for r in reqs]
 
     def compute_positions(self, batch: ScheduleBatch):
         position_ids_offsets = batch.position_ids_offsets

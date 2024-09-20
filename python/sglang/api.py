@@ -13,6 +13,7 @@ from sglang.lang.ir import (
     SglFunction,
     SglGen,
     SglImage,
+    SglRegion,
     SglRoleBegin,
     SglRoleEnd,
     SglSelect,
@@ -193,6 +194,10 @@ def gen_string(
         str,
         None,
     )
+
+
+def region(expr: SglExpr):
+    return SglRegion(expr)
 
 
 def image(expr: SglExpr):

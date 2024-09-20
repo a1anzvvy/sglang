@@ -30,7 +30,7 @@ import torch.distributed as dist
 from sglang.global_config import global_config
 from sglang.srt.constrained.fsm_cache import FSMCache
 from sglang.srt.constrained.jump_forward import JumpForwardCache
-from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer
+from sglang.srt.hf_transformers_utils import get_processor, get_tokenizer, get_srgpt_processor
 from sglang.srt.layers.logits_processor import LogitsProcessorOutput
 from sglang.srt.managers.io_struct import (
     AbortReq,
@@ -109,11 +109,12 @@ class ModelTpServer:
             self.tokenizer = self.processor = None
         else:
             if is_multimodal_model(self.model_config.hf_config.architectures):
-                self.processor = get_processor(
-                    server_args.tokenizer_path,
-                    tokenizer_mode=server_args.tokenizer_mode,
-                    trust_remote_code=server_args.trust_remote_code,
-                )
+                # self.processor = get_processor(
+                #     server_args.tokenizer_path,
+                #     tokenizer_mode=server_args.tokenizer_mode,
+                #     trust_remote_code=server_args.trust_remote_code,
+                # )
+                self.processor = get_srgpt_processor(server_args.model_path)
                 self.tokenizer = self.processor.tokenizer
             else:
                 self.tokenizer = get_tokenizer(
@@ -332,6 +333,7 @@ class ModelTpServer:
         req.sampling_params = recv_req.sampling_params
         if self.model_runner.is_generation:
             req.pixel_values = recv_req.pixel_values
+            req.region_coords = recv_req.region_coords
             if req.pixel_values is not None:
                 # Use image hash as fake token_ids, which is then used
                 # for prefix matching

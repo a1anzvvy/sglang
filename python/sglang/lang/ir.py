@@ -169,6 +169,8 @@ class SglFunction:
     ):
         from sglang.lang.interpreter import run_program
 
+        print("kwargs", kwargs)
+
         default_sampling_para = SglSamplingParams(
             max_new_tokens=max_new_tokens,
             stop=stop,
@@ -389,6 +391,14 @@ class SglArgument(SglExpr):
             "Cannot put argument inside a f-string. "
             "This is not compatible with the tracer. "
         )
+    
+
+class SglRegion(SglExpr):
+    def __init__(self, region: str):
+        self.region = region
+
+    def __repr__(self) -> str:
+        return f"SglRegion({self.region})"
 
 
 class SglImage(SglExpr):

@@ -19,7 +19,7 @@ limitations under the License.
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union, Tuple
 
 import torch
 
@@ -130,6 +130,7 @@ class Req:
         self.image_sizes = None
         self.image_offsets = None
         self.pad_value = None
+        self.region_coords = None
 
         # Prefix info
         self.extend_input_len = 0

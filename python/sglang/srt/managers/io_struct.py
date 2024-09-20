@@ -21,7 +21,7 @@ processes (TokenizerManager, DetokenizerManager, Controller).
 import copy
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Tuple
 
 from sglang.srt.managers.schedule_batch import BaseFinishReason
 from sglang.srt.sampling.sampling_params import SamplingParams
@@ -31,6 +31,8 @@ from sglang.srt.sampling.sampling_params import SamplingParams
 class GenerateReqInput:
     # The input prompt. It can be a single prompt or a batch of prompts.
     text: Optional[Union[List[str], str]] = None
+    # The srgpt_region.
+    region: Optional[Union[List[str], str]] = None
     # The token ids for text; one can either specify text or input_ids.
     input_ids: Optional[Union[List[List[int]], List[int]]] = None
     # The image input. It can be a file name, a url, or base64 encoded string.
@@ -126,6 +128,11 @@ class GenerateReqInput:
             elif not isinstance(self.image_data, list):
                 self.image_data = [self.image_data] * num
 
+            if self.region is None:
+                self.region = [None] * num
+            elif not isinstance(self.region, list):
+                self.region = [self.region] * num
+
             if self.sampling_params is None:
                 self.sampling_params = [{}] * num
             elif not isinstance(self.sampling_params, list):
@@ -163,6 +170,8 @@ class TokenizedGenerateReqInput:
     input_ids: List[int]
     # The pixel values for input images
     pixel_values: List[float]
+    # The region coordinates of input
+    region_coords: List[Tuple[int, int, int, int]]
     # The hash values of input images
     image_hashes: List[int]
     # The image sizes
