@@ -169,8 +169,6 @@ class SglFunction:
     ):
         from sglang.lang.interpreter import run_program
 
-        print("kwargs", kwargs)
-
         default_sampling_para = SglSamplingParams(
             max_new_tokens=max_new_tokens,
             stop=stop,

@@ -44,7 +44,7 @@ class VilaLlavaLlamaModel(nn.Module):
     ):
         super().__init__()
         self.config = config
-        self.root_path = config.root_path
+        self.root_path = config._name_or_path
         text_config = LlamaConfig.from_dict(self.config.text_config.to_dict())
         self.language_model = LlamaForCausalLM(text_config, quant_config=quant_config)
 
@@ -74,15 +74,15 @@ class VilaLlavaLlamaModel(nn.Module):
         return new_input_ids, [offset]
 
     def load_weights(self, weights: Iterable[Tuple[str, torch.Tensor]]):
-        mm_projector_path = os.path.join(self.root_path, os.path.normpath(self.config.mm_projector_cfg["_name_or_path"]))
+        mm_projector_path = os.path.join(self.root_path, "mm_projector")
         self.multi_modal_projector = build_mm_projector(mm_projector_path, self.config).cuda()
         self.multi_modal_projector.eval()
 
-        region_extrator_path = os.path.join(self.root_path, os.path.normpath(self.config.region_extractor_cfg["_name_or_path"]))
+        region_extrator_path = os.path.join(self.root_path,"region_extractor")
         self.region_extractor = build_region_extractor(region_extrator_path, self.config).cuda()
         self.region_extractor.eval()
 
-        vision_path = os.path.join(self.root_path, os.path.normpath(self.config.vision_tower_cfg["_name_or_path"]))
+        vision_path = os.path.join(self.root_path, "vision_tower")
         self.vision_tower = SiglipVisionModel.from_pretrained(vision_path, torch_dtype=torch.bfloat16).cuda()
         self.vision_tower.eval()
 
@@ -156,9 +156,9 @@ class VilaLlavaLlamaModel(nn.Module):
                 else:
                     # Image: normal pixel: BS, C=3, H=336, W=336
                     pixel_values = torch.tensor(
-                        np.array(pixel_values), device=self.vision_tower.device, dtype=torch.bfloat16,
+                        pixel_values, device=self.vision_tower.device, dtype=torch.bfloat16,
                     )
-                    tower_features = self.vision_tower(pixel_values).last_hidden_state
+                    tower_features = self.vision_tower(pixel_values, output_hidden_states=True).hidden_states[-2]
                     hres_tower_features, lres_tower_features = self.region_extractor.feature_refinement(tower_features)
                     image_features = self.multi_modal_projector(lres_tower_features)
                     image_features = image_features.unsqueeze(1)
@@ -197,16 +197,16 @@ class VilaLlavaLlamaModel(nn.Module):
                     pt+=1
 
                 ########## Extract Region and Fill Mask Featrues ########
-                # TODO: replace with real input
                 mask_indexs = torch.nonzero(input_ids == LLM_MASK_TOKEN_INDEX, as_tuple=True)[0]
                 # FIXME: This assumes each image has only one or none <mask> token
                 assert len(mask_indexs) <= sum([len(image_offsets[i]) for i in range(bs)])
-                assert len(input_metadata.region_coords) == mask_indexs.shape[0]
+                assert sum([len(l) for l in input_metadata.region_coords]) == mask_indexs.shape[0]
                 for i in range(len(mask_indexs)):
                     region_mask = torch.zeros((1, 1, self.image_size, self.image_size), dtype=torch.float16, device=self.vision_tower.device)
                     region_coord = input_metadata.region_coords[i]
                     # FIXME: assuming there is only one mask in one image
                     region_idx = 0
+                    print(region_coord)
                     region_mask[0,
                                 0,
                                 region_coord[region_idx][2]:region_coord[region_idx][3],
@@ -219,7 +219,12 @@ class VilaLlavaLlamaModel(nn.Module):
                     if replace_mask_idx >= prefix_len:
                         input_embeds[replace_mask_idx] = mask_embed
 
-            return self.language_model(input_ids=None,input_embeds=input_embeds, positions=positions, input_metadata=input_metadata)
+                        # pos_mask = (input_ids == LLM_MASK_TOKEN_INDEX)
+                        # zeros_embeds = torch.zeros_like(input_embeds)
+                        # zeros_embeds[pos_mask] = mask_embed.to(device=zeros_embeds.device, dtype=zeros_embeds.dtype)
+                        # input_embeds = input_embeds * (~pos_mask).to(input_embeds.dtype).unsqueeze(-1) + zeros_embeds
+
+            return self.language_model(input_ids=input_ids, input_embeds=input_embeds, positions=positions, input_metadata=input_metadata)
         elif input_metadata.forward_mode == ForwardMode.DECODE:
             return self.language_model(input_ids=input_ids, positions=positions, input_metadata=input_metadata)
 

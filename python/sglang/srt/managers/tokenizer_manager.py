@@ -377,7 +377,7 @@ class TokenizerManager:
                     pixel_values, image_hashes, image_sizes = (
                         await self._get_pixel_values(obj.image_data[index])
                     )
-                    if obj.region is not None and len(obj.region) > 0:
+                    if obj.region[i]:
                         region_json = json.loads(obj.region[i])
                         region_coords = [(
                             region_json['x0'],
