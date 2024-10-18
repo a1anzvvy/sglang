@@ -200,13 +200,12 @@ class TokenizerManager:
                     logprob_start_len = obj.logprob_start_len
                     top_logprobs_num = obj.top_logprobs_num
                     if obj.region is not None and len(obj.region) > 0:
-                        region_jsons = [json.loads(o) for o in obj.region]
-                        region_coords = [(
-                            region_json['x0'],
-                            region_json['x1'],
-                            region_json['y0'],
-                            region_json['y1'],
-                        ) for region_json in region_jsons]
+                        region_coords = [[
+                            obj.region['x0'],
+                            obj.region['x1'],
+                            obj.region['y0'],
+                            obj.region['y1'],
+                        ]]
                     else:
                         region_coords = []
                     if image_inputs:
@@ -238,13 +237,13 @@ class TokenizerManager:
                     logprob_start_len = obj.logprob_start_len[index]
                     top_logprobs_num = obj.top_logprobs_num[index]
                     if obj.region is not None and len(obj.region) > 0:
-                        region_json = json.loads(obj.region[index])
-                        region_coords = [(
+                        region_json = obj.region[index]
+                        region_coords = [[
                             region_json['x0'],
                             region_json['x1'],
                             region_json['y0'],
                             region_json['y1'],
-                        )]
+                        ]]
                     else:
                         region_coords = []
                     if image_inputs:
@@ -297,7 +296,7 @@ class TokenizerManager:
             logprob_start_len = obj.logprob_start_len[0]
             top_logprobs_num = obj.top_logprobs_num[0]
             if obj.region is not None and len(obj.region) > 0:
-                region_json = json.loads(obj.region[0])
+                region_json = obj.region[0]
                 region_coords = [(
                     region_json['x0'],
                     region_json['x1'],

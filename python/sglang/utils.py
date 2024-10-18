@@ -42,7 +42,7 @@ def read_jsonl(filename: str):
         for line in fin:
             if line.startswith("#"):
                 continue
-            yield json.loads(line)
+            return json.loads(line)
 
 
 def dump_state_text(filename: str, states: list, mode: str = "w"):

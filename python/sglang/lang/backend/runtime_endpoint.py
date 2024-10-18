@@ -321,7 +321,10 @@ class RuntimeEndpoint(BaseBackend):
     def _add_regions(self, s: StreamExecutor, data):
         if s.region:
             assert len(s.region) == 1, "Only support one region."
-            data["region"] = s.region[0].replace("'", '"')
+            if s.region[0][1] == "'":
+                data["region"] = json.loads(s.region[0].replace("'",'"'))
+            else:
+                data["region"] = json.loads(s.region[0].replace("'",'"'))
 
     def _assert_success(self, res):
         if res.status_code != 200:

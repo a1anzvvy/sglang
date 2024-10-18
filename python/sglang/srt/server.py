@@ -26,6 +26,7 @@ import logging
 import multiprocessing as mp
 import os
 import random
+from socket import socket
 import threading
 import time
 from http import HTTPStatus
@@ -553,11 +554,16 @@ class Runtime:
         atexit.register(self.shutdown)
 
         # Pre-allocate ports
-        for port in range(10000, 40000):
-            if is_port_available(port):
-                break
-            port += 1
-        self.server_args.port = port
+        # for port in range(10000, 40000):
+        #     if is_port_available(port):
+        #         break
+        #     port += 1
+        # self.server_args.port = port
+        with socket() as s:
+            s.bind(('',0))
+            available_port = s.getsockname()[1]
+        # print("available port:", available_port)
+        self.server_args.port = available_port
 
         self.url = self.server_args.url()
         self.generate_url = self.url + "/generate"

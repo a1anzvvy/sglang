@@ -71,7 +71,8 @@ class VilaLlavaLlamaModel(nn.Module):
             + pad_ids
             + input_ids[(offset+1):]
         )
-
+        
+        image_inputs.image_offsets = [offset]
         return new_input_ids
 
     def load_weights(self, weights: Iterable[Tuple[str, torch.Tensor]]):
