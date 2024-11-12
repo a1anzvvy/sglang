@@ -162,7 +162,7 @@ class VilaLlavaLlamaModel(nn.Module):
                         np.concatenate(pixel_values, axis=0),
                         device=self.vision_tower.device,
                     )
-                    tower_features = self.vision_tower(concat_images).last_hidden_state
+                    tower_features = self.vision_tower(concat_images, output_hidden_states=True).hidden_states[-2]
                     split_sizes = [image.shape[0] for image in pixel_values]
                     tower_features = torch.split(tower_features, split_sizes, dim=0)
                     hres_tower_features, lres_tower_features = self.region_extractor.feature_refinement(tower_features)
