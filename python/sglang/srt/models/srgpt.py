@@ -192,7 +192,7 @@ class VilaLlavaLlamaModel(nn.Module):
                     prefix_len = prefix_lens_cpu[i]
 
                     # Multiple images
-                    for j, image_offset in enumerate(image_offsets[i]):
+                    for j, image_offset in enumerate(image_offsets[pt]):
                         if image_offset < prefix_len:
                             continue
 
@@ -214,7 +214,7 @@ class VilaLlavaLlamaModel(nn.Module):
                 ########## Extract Region and Fill Mask Featrues ########
                 mask_indexs = torch.nonzero(input_ids == LLM_MASK_TOKEN_INDEX, as_tuple=True)[0]
                 # FIXME: This assumes each image has only one or none <mask> token
-                assert len(mask_indexs) <= sum([len(image_offsets[i]) for i in range(bs)])
+                assert len(mask_indexs) <= sum([len(image_offsets[i]) for i in range(len(image_offsets))])
                 assert sum([len(l) for l in region_coords]) == mask_indexs.shape[0]
                 for i in range(len(mask_indexs)):
                     region_mask = torch.zeros((1, 1, self.image_size, self.image_size), dtype=torch.float16, device=self.vision_tower.device)
