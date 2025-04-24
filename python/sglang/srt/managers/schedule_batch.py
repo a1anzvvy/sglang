@@ -265,6 +265,17 @@ class Req:
 
         max_prefix_len = max(max_prefix_len, 0)
         return self.fill_ids[:max_prefix_len]
+    
+    def srgpt_adjust_prefill_text_ids(self):
+        self.fill_ids = self.origin_input_ids + self.output_ids
+        _IMAGE_TOKEN_INDEX = -200
+        image_token_index = self.origin_input_ids_unpadded.index(_IMAGE_TOKEN_INDEX)
+
+        return self.fill_ids[:image_token_index]
+    
+    def srgpt_prefill_contain_image_token(self):
+        _IMAGE_TOKEN_INDEX = -200
+        return _IMAGE_TOKEN_INDEX in self.origin_input_ids_unpadded
 
     # Based on https://github.com/vllm-project/vllm/blob/7a64d24aad69e4d2548aa0bf528d9fe63428ab01/vllm/transformers_utils/detokenizer.py#L194-L313
     def init_incremental_detokenize(self):

@@ -214,6 +214,25 @@ class VilaLlavaLlamaModel(nn.Module):
                 ########## Extract Region and Fill Mask Featrues ########
                 mask_indexs = torch.nonzero(input_ids == LLM_MASK_TOKEN_INDEX, as_tuple=True)[0]
                 # FIXME: This assumes each image has only one or none <mask> token
+                if len(mask_indexs) > sum([len(image_offsets[i]) for i in range(len(image_offsets))]):
+                    print("#########################")
+                    print("#########################")
+                    print(f"length of mask_indexs: {len(mask_indexs)}")
+                    print(f"mask_indexs: {mask_indexs}")
+                    print(f"sum of image_offsets: {sum([len(image_offsets[i]) for i in range(len(image_offsets))])}")
+                    for i in range(len(image_offsets)):
+                        print(f"image_offsets: {image_offsets[i]}")
+                    
+                    print(f"start_positions: {start_positions}")
+                    print(f"max_image_offset: {max_image_offset}")
+                    print(f"need vision: {need_vision}")
+                    print(f" length of image_inputs: {len(image_inputs)}")
+                    for iii, im in enumerate(image_inputs):
+                        print(f"{iii} image_inputs: {im.image_offsets}")
+                    print(f"forward_batch.extend_start_loc: {forward_batch.extend_start_loc}")
+                    print(f"positions: {positions}")
+                    print("#########################")
+                    print("#########################")
                 assert len(mask_indexs) <= sum([len(image_offsets[i]) for i in range(len(image_offsets))])
                 assert sum([len(l) for l in region_coords]) == mask_indexs.shape[0]
                 for i in range(len(mask_indexs)):

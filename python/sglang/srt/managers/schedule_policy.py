@@ -47,10 +47,23 @@ class SchedulePolicy:
         prefix_computed = False
         if self.policy in ["lpm", "dfs-weight"]:
             for r in waiting_queue:
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print(f"r.rid: {r.rid}")
+                print(f"r.origin_input_ids_unpadded: {r.origin_input_ids_unpadded}")
                 # NOTE: the prefix_indices must always be aligned with last_node
                 r.prefix_indices, r.last_node = self.tree_cache.match_prefix(
                     rid=r.rid, key=r.adjust_max_prefix_ids()
                 )
+                IMAGE_TOKEN_LENGTH = 196
+
+                if len(r.prefix_indices) < IMAGE_TOKEN_LENGTH and r.srgpt_prefill_contain_image_token():
+                    r.prefix_indices, r.last_node = self.tree_cache.match_prefix(
+                        rid=r.rid, key=r.srgpt_adjust_prefill_text_ids()
+                    )
+                print(f"r.prefix_indices: {r.prefix_indices}")
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+                print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
             prefix_computed = True
 
         if self.policy == "lpm":
