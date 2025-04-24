@@ -310,7 +310,7 @@ class Scheduler:
         # Image inputs
         if recv_req.image_inputs is not None:
             req.image_inputs = ImageInputs.from_dict(
-                recv_req.image_inputs, self.model_config.vocab_size
+                recv_req.image_inputs, self.model_config.vocab_size - 2
             )
             req.origin_input_ids = self.pad_input_ids_func(
                 req.origin_input_ids_unpadded, req.image_inputs

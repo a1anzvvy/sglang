@@ -231,6 +231,7 @@ class VilaLlavaLlamaModel(nn.Module):
                         print(f"{iii} image_inputs: {im.image_offsets}")
                     print(f"forward_batch.extend_start_loc: {forward_batch.extend_start_loc}")
                     print(f"positions: {positions}")
+                    print(f"input_ids: {input_ids}")
                     print("#########################")
                     print("#########################")
                 assert len(mask_indexs) <= sum([len(image_offsets[i]) for i in range(len(image_offsets))])
